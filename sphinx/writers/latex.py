@@ -50,7 +50,7 @@ LATEXSECTIONNAMES = ["part", "chapter", "section", "subsection",
                      "subsubsection", "paragraph", "subparagraph"]
 
 DEFAULT_SETTINGS = {
-    'latex_engine':    'pdflatex',
+    'latex_engine':    'xelatex',
     'papersize':       'letterpaper',
     'pointsize':       '10pt',
     'pxunit':          '.75bp',
