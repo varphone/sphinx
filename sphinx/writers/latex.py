@@ -72,7 +72,7 @@ DEFAULT_SETTINGS = {
     'babel':           '\\usepackage{babel}',
     'polyglossia':     '',
     'fontpkg':         '\\usepackage{times}',
-    'fncychap':        '',
+    'fncychap':        '\\usepackage[Bjarne]{fncychap}',
     'hyperref':        ('% Include hyperref last.\n'
                         '\\usepackage{hyperref}\n'
                         '% Fix anchor placement for figures with captions.\n'
