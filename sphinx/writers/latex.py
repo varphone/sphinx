@@ -52,7 +52,7 @@ LATEXSECTIONNAMES = ["part", "chapter", "section", "subsection",
 DEFAULT_SETTINGS = {
     'latex_engine':    'xelatex',
     'papersize':       'letterpaper',
-    'pointsize':       '10pt',
+    'pointsize':       '12pt',
     'pxunit':          '.75bp',
     'classoptions':    '',
     'extraclassoptions': '',
