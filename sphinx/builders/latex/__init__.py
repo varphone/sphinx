@@ -295,7 +295,7 @@ def default_latex_engine(config):
     if config.language == 'ja':
         return 'platex'
     else:
-        return 'pdflatex'
+        return 'xelatex'
 
 
 def default_latex_docclass(config):
