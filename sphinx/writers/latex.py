@@ -68,6 +68,7 @@ DEFAULT_SETTINGS = {
     'fontenc':         '\\usepackage[T1]{fontenc}',
     'amsmath':         '\\usepackage{amsmath,amssymb,amstext}',
     'multilingual':    '',
+    'ctex':            '\\usepackage[UTF8]{ctex}',
     'babel':           '\\usepackage{babel}',
     'polyglossia':     '',
     'fontpkg':         '\\usepackage{times}',

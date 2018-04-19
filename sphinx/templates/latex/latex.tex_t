@@ -21,6 +21,7 @@
 <%= fontenc %>
 <%= amsmath %>
 <%= multilingual %>
+<%= ctex %>
 <%= fontpkg %>
 <%= fncychap %>
 <%= booktabs %>
