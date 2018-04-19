@@ -100,6 +100,7 @@ DEFAULT_SETTINGS = {
     'secnumdepth':     '',
     'pageautorefname': '',
     'literalblockpto': '',
+    'booktabs':        '\\usepackage{booktabs}',
 }  # type: Dict[unicode, unicode]
 
 ADDITIONAL_SETTINGS = {
@@ -1398,7 +1399,7 @@ class LaTeXTranslator(nodes.NodeVisitor):
         cells = [self.table.cell(self.table.row, i) for i in range(self.table.colcount)]
         underlined = [cell.row + cell.height == self.table.row + 1 for cell in cells]
         if all(underlined):
-            self.body.append('\\hline')
+            self.body.append('')
         else:
             i = 0
             underlined.extend([False])  # sentinel

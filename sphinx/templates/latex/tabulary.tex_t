@@ -16,12 +16,14 @@
 \sphinxaftercaption
 <% endif -%>
 \begin{tabulary}{\linewidth}[t]<%= table.get_colspec() -%>
-\hline
+\toprule
 <%= ''.join(table.header) %>
 <%- if table.caption_footnotetexts -%>
 <%= ''.join(table.caption_footnotetexts) -%>
 <%- endif -%>
+\midrule
 <%=- ''.join(table.body) %>
+\bottomrule
 \end{tabulary}
 \par
 \sphinxattableend\end{savenotes}

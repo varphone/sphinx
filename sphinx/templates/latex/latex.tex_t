@@ -23,6 +23,7 @@
 <%= multilingual %>
 <%= fontpkg %>
 <%= fncychap %>
+<%= booktabs %>
 \usepackage<%= sphinxpkgoptions %>{sphinx}
 <%= sphinxsetup %>
 <%= fvset %>
