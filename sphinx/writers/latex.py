@@ -68,7 +68,8 @@ DEFAULT_SETTINGS = {
     'fontenc':         '\\usepackage[T1]{fontenc}',
     'amsmath':         '\\usepackage{amsmath,amssymb,amstext}',
     'multilingual':    '',
-    'ctex':            '\\usepackage[UTF8]{ctex}',
+    'ctex':            '',
+    'ctexoptions':     'UTF8,heading=true,scheme=chinese',
     'babel':           '\\usepackage{babel}',
     'polyglossia':     '',
     'fontpkg':         '\\usepackage{times}',
@@ -546,6 +547,20 @@ class LaTeXTranslator(nodes.NodeVisitor):
         # simply use babel.get_language() always, as get_language() returns
         # 'english' even if language is invalid or empty
         self.elements['classoptions'] += ',' + self.babel.get_language()
+
+        # XeLaTeX (Chinese TeX) for support
+        if builder.config.language.startswith('zh'):
+            # use dvipdfmx as default class option in Chinese
+            self.elements['classoptions'] = ''
+            # disable babel which has not publishing quality in Chinese
+            self.elements['babel'] = ''
+            #self.elements['polyglossia'] = ''
+            self.elements['multilingual'] = ''
+             # disable fncychap in Chinese documents
+            self.elements['fncychap'] = ''
+            # use ctex defaults if not specified
+            if not  self.elements['ctex']:
+                self.elements['ctex'] = '\\usepackage[%s]{ctex}' % (self.elements['ctexoptions'])
 
         # set up multilingual module...
         # 'babel' key is public and user setting must be obeyed
