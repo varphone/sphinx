@@ -1,4 +1,8 @@
-\begin{savenotes}\sphinxatlongtablestart\begin{longtable}
+\begin{savenotes}\sphinxatlongtablestart
+<%- if table.has_altcolor -%>
+\rowcolors{4}{}{lightgray}
+<%- endif -%>
+\begin{longtable}
 <%- if table.align == 'center' -%>
   [c]
 <%- elif table.align == 'left' -%>
@@ -8,20 +12,40 @@
 <%- endif -%>
 <%= table.get_colspec() %>
 <%- if table.caption -%>
+<%- if table.has_altcolor -%>
+\hiderowcolors
+<%- endif -%>
 \caption{<%= ''.join(table.caption) %>\strut}<%= labels %>\\*[\sphinxlongtablecapskipadjust]
 <% endif -%>
+<%- if table.no_hline -%>
 \toprule
+<%- else -%>
+\hline
+<%- endif -%>
 <%= ''.join(table.header) %>
 \endfirsthead
 
 \multicolumn{<%= table.colcount %>}{c}%
 {\makebox[0pt]{\sphinxtablecontinued{\tablename\ \thetable{} -- <%= _('continued from previous page') %>}}}\\
+<%- if table.no_hline -%>
 \midrule
+<%- else -%>
+\hline
+<%- endif -%>
 <%= ''.join(table.header) %>
+<%- if table.no_hline -%>
 \midrule
+<%- endif -%>
 \endhead
 
+<%- if table.no_hline -%>
 \midrule
+<%- else -%>
+\hline
+<%- endif -%>
+<%- if table.has_altcolor -%>
+\hiderowcolors
+<%- endif -%>
 \multicolumn{<%= table.colcount %>}{r}{\makebox[0pt][r]{\sphinxtablecontinued{<%= _('Continued on next page') %>}}}\\
 \endfoot
 
@@ -29,7 +53,17 @@
 <% if table.caption_footnotetexts -%>
 <%= ''.join(table.caption_footnotetexts) %>
 <% endif -%>
+<%- if table.no_hline -%>
 \midrule
+<%- endif -%>
+<%- if table.has_altcolor -%>
+\showrowcolors
+<%- endif -%>
 <%= ''.join(table.body) %>
+<%- if table.has_altcolor -%>
+\hiderowcolors
+<%- endif -%>
+<%- if table.no_hline -%>
 \bottomrule
+<%- endif -%>
 \end{longtable}\sphinxatlongtableend\end{savenotes}

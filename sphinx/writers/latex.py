@@ -276,6 +276,10 @@ class Table(object):
                                                 # (cell = rectangular area)
         self.cell_id = 0                        # last assigned cell_id
 
+        self.no_hline = 'nohline' in self.classes
+        self.no_vline = 'novline' in self.classes
+        self.has_altcolor = 'altcolor' in self.classes
+
     def is_longtable(self):
         # type: () -> bool
         """True if and only if table uses longtable environment."""
@@ -302,7 +306,7 @@ class Table(object):
         else:
             return 'tabulary'
 
-    def get_colspec(self):
+    def get_colspec_internal(self):
         # type: () -> unicode
         """Returns a column spec of table.
 
@@ -325,6 +329,15 @@ class Table(object):
             return '{|*{%d}{\\X{1}{%d}|}}\n' % (self.colcount, self.colcount)
         else:
             return '{|' + ('l|' * self.colcount) + '}\n'
+
+    def get_colspec(self):
+        # type: () -> unicode
+        """Returns a column spec of table with novline supports
+        """
+        s = self.get_colspec_internal()
+        if self.no_vline:
+            return s.replace('|', '')
+        return s
 
     def add_cell(self, height, width):
         # type: (int, int) -> None
@@ -1415,7 +1428,7 @@ class LaTeXTranslator(nodes.NodeVisitor):
         cells = [self.table.cell(self.table.row, i) for i in range(self.table.colcount)]
         underlined = [cell.row + cell.height == self.table.row + 1 for cell in cells]
         if all(underlined):
-            self.body.append('')
+            self.body.append('\\hline' if not self.table.no_hline else '')
         else:
             i = 0
             underlined.extend([False])  # sentinel

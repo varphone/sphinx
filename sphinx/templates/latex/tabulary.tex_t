@@ -15,15 +15,32 @@
 \sphinxcaption{<%= ''.join(table.caption) %>}<%= labels %>
 \sphinxaftercaption
 <% endif -%>
+<%- if table.has_altcolor -%>
+\rowcolors{1}{}{lightgray}
+<%- endif -%>
 \begin{tabulary}{\linewidth}[t]<%= table.get_colspec() -%>
+<%- if table.has_altcolor -%>
+\hiderowcolors
+<%- endif -%>
+<%- if table.no_hline -%>
 \toprule
+<%- else -%>
+\hline
+<%- endif -%>
 <%= ''.join(table.header) %>
 <%- if table.caption_footnotetexts -%>
 <%= ''.join(table.caption_footnotetexts) -%>
 <%- endif -%>
+<%- if table.no_hline -%>
 \midrule
+<%- endif -%>
+<%- if table.has_altcolor -%>
+\showrowcolors
+<%- endif -%>
 <%=- ''.join(table.body) %>
+<%- if table.no_hline -%>
 \bottomrule
+<%- endif -%>
 \end{tabulary}
 \par
 \sphinxattableend\end{savenotes}

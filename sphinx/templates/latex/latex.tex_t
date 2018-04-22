@@ -25,6 +25,9 @@
 <%= fontpkg %>
 <%= fncychap %>
 <%= booktabs %>
+\usepackage[table]{xcolor}
+\definecolor{lightgray}{gray}{0.9}
+\usepackage{register}
 \usepackage<%= sphinxpkgoptions %>{sphinx}
 <%= sphinxsetup %>
 <%= fvset %>
