@@ -1735,8 +1735,8 @@ class LaTeXTranslator(nodes.NodeVisitor):
             align_prepost = {
                 # By default latex aligns the top of an image.
                 (1, 'top'): ('', ''),
-                (1, 'middle'): ('\\raisebox{-0.5\\height}{', '}'),
-                (1, 'bottom'): ('\\raisebox{-\\height}{', '}'),
+                (1, 'middle'): ('\\adjustbox{valign=m}{', '}'),
+                (1, 'bottom'): ('\\adjustbox{valign=b}{', '}'),
                 (0, 'center'): ('{\\hspace*{\\fill}', '\\hspace*{\\fill}}'),
                 # These 2 don't exactly do the right thing.  The image should
                 # be floated alongside the paragraph.  See
