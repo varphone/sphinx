@@ -121,7 +121,7 @@ class RegisterField:
 
         # Alias
         self.length = self.bit_range[0] - self.bit_range[1] + 1
-        self.start = self.bit_range[0]
+        self.start = self.bit_range[1]
 
     def parse_access_or_reset(self, ar):
         for a in ar:
@@ -156,24 +156,37 @@ class Register:
         self.title = None
 
     def fix_missing(self):
-        bit_max = self.fields[0].bit_range[0]
-        bit_min = self.fields[-1].bit_range[1]
+        bucket = []
+        bucket += range(0, self.bits)
 
-        if bit_max < self.bits - 1:
-            if self.bits - bit_max > 2:
-                s = 'Reserved %i-%i NA' % (self.bits - 1, bit_max + 1)
-            else:
-                s = 'Reserved %i NA' % (self.bits - 1)
-            f = RegisterField(rawsource=s)
-            self.fields.insert(0, f)
+        for f in self.fields:
+            del bucket[f.bit_range[1]:f.bit_range[0] + 1]
 
-        if bit_min > 0:
-            if bit_min > 1:
-                s = 'Reserved %i-%i NA' % (bit_min - 1, 0)
-            else:
-                s = 'Reserved 0 NA'
-            f = RegisterField(rawsource=s)
-            self.fields.append(f)
+        if len(bucket) > 0:
+            nf_list = []
+            nf_list.append([bucket[0], bucket[0]])
+
+            prev = bucket[0]
+            for curr in bucket[1:]:
+                if curr == 31 and self.bits > 32:
+                    nf_list[-1][1] = curr
+                    nf_list.append([32, 32])
+                elif curr - prev == 1:
+                    nf_list[-1][1] = curr
+                elif curr - prev > 1:
+                    nf_list.append([curr, curr])
+                prev = curr
+
+            for nf in nf_list:
+                if nf[0] == nf[1]:
+                    s = 'Reserved %i NA' % nf[0]
+                else:
+                    s = 'Reserved %i-%i NA' % (nf[0], nf[1])
+                f = RegisterField(rawsource=s)
+                self.fields.append(f)
+
+            # Sort the fields with descend of the start offset (again)
+            self.fields.sort(key=lambda x: x.start, reverse=True)
 
     def get_nodes(self):
         ret_nodes = []
@@ -224,9 +237,9 @@ class Register:
         self.fix_missing()
 
     def make_address_title(self):
-        text = 'Address = None'
+        text = __('Address = None')
         if len(self.address) == 2:
-            text = __('Address = %s, Offset = %s') % \
+            text = __('Address Base = %s, Offset = %s') % \
                 (self.address[0], self.address[1])
         elif len(self.address) == 1:
             text = __('Address = %s') % self.address[0]
@@ -400,7 +413,7 @@ def latex_visit_register(self, node):
             if f.start == 32:
                 self.body.append('\\reglabel{%s}%%\n' % __('Reset'))
                 self.body.append('\\regnewline\n')
-        elif reg.bits == 32:
+        elif reg.bits <= 32:
             self.body.append('\\regfield{%s}{%i}{%i}{%s}%%\n' %
                              (latex_name, f.length, f.start, f.reset))
 
