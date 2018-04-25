@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
     sphinx.ext.register
     ~~~~~~~~~~~~~~~~~~~
 
@@ -9,13 +9,13 @@
     :copyright: Copyright 2007-2018 by Varphone Wong <varphone@qq.com>.
     :license: BSD, see LICENSE for details.
 
-    .. code:: example
+    Example::
 
        .. register:: AKA_FLAG
           :address: 0x2000_0000 0x0080
           :bits: 64
           :classes: colwidths-given altcolor
-          :desc-tabular-colspec: >{\centering\arraybackslash}\X{1}{4} \X{3}{4}
+          :desc-tabular-colspec: >{\centering\arraybackslash}\X{1}{10} \X{1}{10} \X{2}{10} \X{6}{10}
 
           - FLAG_K 7-5 110
 
@@ -31,7 +31,7 @@
 
           - FLAG_B 4-2 111
           - "POWOER OFF" 1 0
-          - "POWER ON" 0 0
+          - "POWER ON" 0 0 R
 """
 
 from docutils import nodes
@@ -59,25 +59,77 @@ class RegisterField:
     Object of the register field.
     """
 
-    def __init__(self, list_item):
+    default_access = 'RW'
+    default_reset = '-'
+
+    def __init__(self, list_item=[], rawsource=''):
         self.list_item = list_item
+        self.rawsource = rawsource
+
+        if not self.rawsource:
+            self.rawsource = self.list_item[0].astext().strip()
+
         # Split the field define
-        fa = re.findall(r'[^"\s]\S*|".+?"', self.list_item[0].astext().strip())
-        # Field name:
+        # The r'[^"\s]\S*|".+?"' only supports "field name" format
+        # The r'''[^'"\[\s]\S*|['"\[].+?['"\]]''' supports:
+        #    'field name' or "field name" or [field name] formats
+        fa = re.findall(r'''[^'"\[\s]\S*|['"\[].+?['"\]]''', self.rawsource)
+
+        # Must be 2 parts specfied
+        if len(fa) < 2:
+            raise ValueError(
+                __('The field: \"%s\" is bad format!\n'
+                   '  expected: \"{NAME} {MSB}-{LSB} {RESET} {R|W|RW|NA}\"') %
+                self.rawsource)
+
+        # Field name (required):
         if len(fa) > 0:
             self.name = fa[0].strip('\'\"')
-        else:
-            self.name = 'Undefined'
-        # Field bit_range:
+
+        # Field bit_range (required):
         if len(fa) > 1:
-            self.bit_range = re.split('[-:,]', fa[1])
-        else:
-            self.bit_range = [0]
-        # Field reset value:
+            self.parse_bit_range(fa[1])
+
+        # Field reset or access (optional):
+        self.access = self.default_access
+        self.reset = self.default_reset
+
         if len(fa) > 2:
-            self.reset = fa[2]
-        else:
-            self.reset = '-'
+            self.parse_access_or_reset(fa[2:])
+
+    def parse_bit_range(self, str):
+
+        # Strip whitespace and quotes
+        s = str.strip(' []\'\"')
+
+        # Check format
+        if not re.match(r'^\d+(\s*[-:,\s]+\s*\d+)?$', s):
+            raise ValueError(
+                __('The bit range part: "%s" is bad format!\n'
+                   '  expected: "{MSB}-{LSB}"') % str)
+
+        # Support flex delimiters
+        # MSB-LSB, MSB:LSB, MSB,LSB, [MSB LSB], "MSB : LSB"
+        self.bit_range = list(map(int, re.split(r'[-:,\s]+', s)))
+
+        # Auto fix single param mode
+        if len(self.bit_range) == 1:
+            self.bit_range.append(self.bit_range[0])
+
+        # Sort to MSB-LSB orders
+        self.bit_range.sort(reverse=True)
+
+        # Alias
+        self.length = self.bit_range[0] - self.bit_range[1] + 1
+        self.start = self.bit_range[0]
+
+    def parse_access_or_reset(self, ar):
+        for a in ar:
+            s = a.strip(' []\'\"')
+            if 'R' in s or 'W' in s or 'NA' in s:
+                self.access = s
+            else:
+                self.reset = s
 
 
 class Register:
@@ -101,6 +153,27 @@ class Register:
         self.desc_tabular_widths = self.default_desc_tabular_widths
         self.fields = []
         self.name = self.default_name
+        self.title = None
+
+    def fix_missing(self):
+        bit_max = self.fields[0].bit_range[0]
+        bit_min = self.fields[-1].bit_range[1]
+
+        if bit_max < self.bits - 1:
+            if self.bits - bit_max > 2:
+                s = 'Reserved %i-%i NA' % (self.bits - 1, bit_max + 1)
+            else:
+                s = 'Reserved %i NA' % (self.bits - 1)
+            f = RegisterField(rawsource=s)
+            self.fields.insert(0, f)
+
+        if bit_min > 0:
+            if bit_min > 1:
+                s = 'Reserved %i-%i NA' % (bit_min - 1, 0)
+            else:
+                s = 'Reserved 0 NA'
+            f = RegisterField(rawsource=s)
+            self.fields.append(f)
 
     def get_nodes(self):
         ret_nodes = []
@@ -112,6 +185,8 @@ class Register:
         ret_nodes.append(reg_node)
 
         if self.desc == 'table':
+            if self.title:
+                ret_nodes.append(self.title)
             ret_nodes.append(self.make_desc_table())
 
         return ret_nodes
@@ -128,6 +203,9 @@ class Register:
             'desc-tabular-widths', self.default_desc_tabular_widths)
         self.name = options.get('name', self.default_name)
 
+    def set_title(self, title):
+        self.title = title
+
     def nested_parse(self, directive):
         # Parsing nested contents
         node = nodes.Element()
@@ -136,17 +214,24 @@ class Register:
         if len(node.children) > 0:
             self.bullet_list = node[0]
 
+        # Convert list item to RegisterField
         for li in self.bullet_list:
             self.fields.append(RegisterField(li))
+
+        # Sort the fields with descend of the start offset
+        self.fields.sort(key=lambda x: x.start, reverse=True)
+
+        self.fix_missing()
 
     def make_address_title(self):
         text = 'Address = None'
         if len(self.address) == 2:
-            text = __('Address = %s, Offset = %s') % (self.address[0], self.address[1])
+            text = __('Address = %s, Offset = %s') % \
+                (self.address[0], self.address[1])
         elif len(self.address) == 1:
             text = __('Address = %s') % self.address[0]
 
-        return nodes.strong(text=text)
+        return nodes.emphasis(text=text)
 
     def create_desc_table_header_row(self, header):
         """
@@ -164,27 +249,39 @@ class Register:
         Create a description row for the table node.
         """
         row = nodes.row()
-        col = nodes.entry()
-        bre = nodes.emphasis(text='-'.join(map(str, field.bit_range)))
-        brp = nodes.paragraph()
-        brp += bre
-        col += brp
-        col += nodes.paragraph(text=field.name)
-        row += col
 
-        col = nodes.entry()
+        # Bits
+        bits_col = nodes.entry()
+        row += bits_col
+        if field.length == 1:
+            bits_col += nodes.emphasis(text='[%s]' % field.start)
+        else:
+            bits_col += nodes.emphasis(text='[%s]' % ':'.join(map(str, field.bit_range)))
+
+        # Access
+        access_col = nodes.entry()
+        row += access_col
+        access_col += nodes.emphasis(text=field.access)
+
+        # Name
+        name_col = nodes.entry()
+        row += name_col
+        name_col += nodes.paragraph(text=field.name)
+
+        # Description
+        desc_col = nodes.entry()
+        row += desc_col
         if len(field.list_item) < 2:
-            col += nodes.paragraph(text='')
+            desc_col += nodes.paragraph(text='')
         else:
             for c in field.list_item[1:]:
-                col += c
-        row += col
+                desc_col += c
 
         return row
 
     def make_desc_table(self):
-        header = (__('Field'), __('Description'))
-        colwidths = (1, 3)
+        header = (__('Bits'), __('Access'), __('Name'), __('Description'))
+        colwidths = (1, 1, 2, 6)
         if self.desc_tabular_widths != 'auto':
             colwidths = self.desc_tabular_widths.split()
 
@@ -259,13 +356,15 @@ class RegisterDirective(Directive):
 
         return reg.get_nodes()
 
-    def make_desc_table_title(self):
+    def make_title(self):
         if self.caption:
-            text_nodes, messages = self.state.inline_text(self.caption,
-                                                          self.lineno)
+            state = self.state
+            state_machine = self.state_machine
+            text_nodes, messages = state.inline_text(self.caption,
+                                                     self.lineno)
             title = nodes.title(self.caption, '', *text_nodes)
             (title.source,
-             title.line) = self.state_machine.get_source_and_line(self.lineno)
+             title.line) = state_machine.get_source_and_line(self.lineno)
         else:
             title = None
             messages = []
@@ -287,26 +386,23 @@ def latex_visit_register(self, node):
     # type: (nodes.NodeVisitor, register) -> None
     reg = node['register']
 
+    logger.warning("latex_visit_register(%r,%r)" % (self, node))
+
     self.body.append('\n')
-    self.body.append('\\begin{register}{H}{%s}{}%% name=%s\n' % (reg.name, reg.name))
+    self.body.append('\\begin{register}{H}{%s}{}%% name=%s\n' %
+                     (reg.name, reg.name))
     self.body.append('\\label{%s}\n' % reg.name)
     for f in reg.fields:
-        fname = f.name.replace('_', '\\_').replace('-', '\\-')
-        if len(f.bit_range) > 1:
-            bit_count = int(f.bit_range[0]) - int(f.bit_range[1]) + 1
-            bit_offset = int(f.bit_range[1])
-        else:
-            bit_count = 1
-            bit_offset = int(f.bit_range[0])
+        latex_name = f.name.replace('_', '\\_').replace('-', '\\-')
         if reg.bits == 64:
             self.body.append('\\regfield{%s}{%i}{%i}{%s}%%\n' %
-                             (fname, bit_count, bit_offset, f.reset))
-            if bit_offset == 32:
+                             (latex_name, f.length, f.start, f.reset))
+            if f.start == 32:
                 self.body.append('\\reglabel{%s}%%\n' % __('Reset'))
                 self.body.append('\\regnewline\n')
         elif reg.bits == 32:
             self.body.append('\\regfield{%s}{%i}{%i}{%s}%%\n' %
-                             (fname, bit_count, bit_offset, f.reset))
+                             (latex_name, f.length, f.start, f.reset))
 
     self.body.append('\\reglabel{%s}%%\n' % __('Reset'))
     self.body.append('\\regnewline\n')
