@@ -34,6 +34,7 @@ r"""
           - "POWER ON" 0 0 R
 """
 
+from operator import itemgetter, attrgetter
 from docutils import nodes
 from docutils.parsers.rst import Directive, directives
 
@@ -186,7 +187,7 @@ class Register:
                 self.fields.append(f)
 
             # Sort the fields with descend of the start offset (again)
-            self.fields.sort(key=lambda x: x.start, reverse=True)
+            self.fields.sort(key=attrgetter('start'), reverse=True)
 
     def get_nodes(self):
         ret_nodes = []
@@ -232,7 +233,7 @@ class Register:
             self.fields.append(RegisterField(li))
 
         # Sort the fields with descend of the start offset
-        self.fields.sort(key=lambda x: x.start, reverse=True)
+        self.fields.sort(key=attrgetter('start'), reverse=True)
 
         self.fix_missing()
 
